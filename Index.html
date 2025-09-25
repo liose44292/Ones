@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+            text-align: center;
+        }
+        .game-section {
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .game-section input {
+            background-color: #4a5568;
+            border: 2px solid #718096;
+            color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            transition: border-color 0.3s;
+        }
+        .game-section input:focus {
+            outline: none;
+            border-color: #a0aec0;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2rem;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 2rem;
+            position: relative;
+        }
+        .game-board.memory {
+             gap: 1rem;
+        }
+        .square-box {
+            width: 100%;
+            padding-top: 100%; /* 1:1 aspect ratio */
+            background-color: #4a5568;
+            border: 2px solid #a0aec0;
+            border-radius: 0.5rem;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+        .square-box.red-square {
+            background-color: #e53e3e;
+        }
+        .square-box.white-square {
+            background-color: #f7fafc;
+        }
+        .square-box.white-square .number {
+            color: #1a202c;
+        }
+        .square-box.visited {
+            background-color: #2f855a;
+        }
+        .square-box.matched {
+            background-color: #2f855a;
+        }
+        .square-box .number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .bear {
+            position: absolute;
+            z-index: 20;
+            width: 3rem;
+            height: 3rem;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            font-size: 2rem;
+        }
+        .dice-container {
+            perspective: 500px;
+            width: 80px;
+            height: 80px;
+            cursor: grab;
+            user-select: none;
+            position: relative;
+        }
+        .dice-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(0) rotateY(0);
+            transition: transform 1.5s ease-out;
+        }
+        .face {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #cbd5e0;
+            border: 2px solid #2d3748;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .one { transform: rotateY(0deg) translateZ(40px); }
+        .two { transform: rotateX(90deg) translateZ(40px); }
+        .three { transform: rotateY(90deg) translateZ(40px); }
+        .four { transform: rotateY(-90deg) translateZ(40px); }
+        .five { transform: rotateX(-90deg) translateZ(40px); }
+        .six { transform: rotateY(180deg) translateZ(40px); }
+        
+        .dice-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #2d3748;
+            border-radius: 50%;
+            position: absolute;
+        }
+        .one .dot-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .two .dot-top-left { top: 15px; left: 15px; }
+        .two .dot-bottom-right { bottom: 15px; right: 15px; }
+        .three .dot-top-left { top: 15px; left: 15px; }
+        .three .dot-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .three .dot-bottom-right { bottom: 15px; right: 15px; }
+        .four .dot-top-left { top: 15px; left: 15px; }
+        .four .dot-top-right { top: 15px; right: 15px; }
+        .four .dot-bottom-left { bottom: 15px; left: 15px; }
+        .four .dot-bottom-right { bottom: 15px; right: 15px; }
+        .five .dot-top-left { top: 15px; left: 15px; }
+        .five .dot-top-right { top: 15px; right: 15px; }
+        .five .dot-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .five .dot-bottom-left { bottom: 15px; left: 15px; }
+        .five .dot-bottom-right { bottom: 15px; right: 15px; }
+        .six .dot-top-left { top: 15px; left: 15px; }
+        .six .dot-top-right { top: 15px; right: 15px; }
+        .six .dot-middle-left { top: 50%; left: 15px; transform: translateY(-50%); }
+        .six .dot-middle-right { top: 50%; right: 15px; transform: translateY(-50%); }
+        .six .dot-bottom-left { bottom: 15px; left: 15px; }
+        .six .dot-bottom-right { bottom: 15px; right: 15px; }
+
+        /* Memory Game Styles */
+        .card {
+            background-color: transparent;
+            border: 2px solid #718096;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+            width: 100%;
+            padding-top: 100%; /* 1:1 aspect ratio */
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            border-radius: 0.5rem;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .card-front {
+            background-color: #4a5568;
+            transform: rotateY(180deg);
+        }
+        .card-back {
+            background-color: #4a5568;
+        }
+        .card.matched .card-back {
+            background-color: #2f855a;
+        }
+        .disabled-button {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .disabled-magnifier {
+            background-color: #4a5568;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .card-face.red-face { background-color: #e53e3e; }
+        .card-face.yellow-face { background-color: #ecc94b; }
+        .card-face.orange-face { background-color: #dd6b20; }
+        .card-face.gray-face { background-color: #a0aec0; }
+        .card-face.white-face { background-color: #f7fafc; color: #1a202c;}
+
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="container">
+        <!-- Rules Page -->
+        <div id="rulesPage" class="game-section w-full max-w-lg rounded-xl">
+            <h1 class="text-3xl font-bold mb-4">Welcome to the Game</h1>
+            <h1 class="font-bold" style="font-size: 14px;">Memory Game</h1>
+            <p class="font-bold italic mb-6" style="font-size: 10px;">by LIHZOH</p>
+            <div class="text-left mb-6">
+                <h2 class="text-2xl font-semibold mb-2">Game Rules:</h2>
+                <ul class="list-disc list-inside space-y-2">
+                    <li>Click on a card to flip it over and reveal the emoji.</li>
+                    <li>Try to find the card with the matching emoji.</li>
+                    <li>If you find a match, you earn 10 points! If you get a streak of 3 or more, you get 30 points per match!</li>
+                    <li>If the cards don't match, they will flip back over after a short delay.</li>
+                    <li>You have 150 seconds to match all the pairs.</li>
+                    <li>Use the 🔍 button to peek at all cards for a few seconds. The button has a cooldown of 10 seconds.</li>
+                </ul>
+            </div>
+            <button id="startRulesBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200">
+                Start Game
+            </button>
+        </div>
+        
+        <!-- Memory Game Section -->
+        <div id="memoryGameSection" class="game-section mt-8 w-full max-w-sm rounded-xl hidden">
+            <div id="memoryLevelSelection">
+                <p class="text-2xl font-medium mb-6"><b><i>we are the ones☝🏾</i></b></p>
+                <div class="space-y-4">
+                    <button id="selectMemoryLevel1Btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200">
+                        Level 1: Classic
+                    </button>
+                    <button id="selectMemoryLevel2Btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200">
+                        Level 2: Advanced
+                    </button>
+                    <button id="selectMemoryLevel3Btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200">
+                        Level 3: Number Sequence
+                    </button>
+                    <button id="selectMemoryLevel4Btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200">
+                        Level 4: Red Target
+                    </button>
+                    <button id="selectMemoryLevel5Btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200">
+                        Level 5: Color Chain
+                    </button>
+                </div>
+                <button id="memoryToRulesBtn" class="mt-6 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition-colors duration-200">
+                    Back to Rules
+                </button>
+            </div>
+
+            <div id="memoryGameContent" class="hidden">
+                <p id="memoryMessage" class="text-xl font-medium mb-4">Find the pairs!</p>
+                <div class="flex flex-col items-center mt-4">
+                    <div class="flex justify-between w-full max-w-xs mb-4">
+                        <div class="flex flex-col items-center">
+                            <p class="text-lg font-bold">Score:</p>
+                            <p id="memoryScore" class="text-4xl font-bold text-yellow-400">0</p>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <p class="text-lg font-bold">Time Left:</p>
+                            <p id="memoryTimer" class="text-4xl font-bold text-red-500">150</p>
+                        </div>
+                    </div>
+                    <div class="game-board memory" id="memoryGameBoard"></div>
+                </div>
+                <div class="mt-8 flex flex-col items-center">
+                    <button id="magnifyingGlassBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-colors duration-200">
+                        🔍
+                    </button>
+                    <button id="memoryToLevelSelectBtn" class="mt-6 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition-colors duration-200">
+                        Back to Level Select
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Page elements
+            const rulesPage = document.getElementById('rulesPage');
+            const memoryGameSection = document.getElementById('memoryGameSection');
+            const memoryLevelSelection = document.getElementById('memoryLevelSelection');
+            const memoryGameContent = document.getElementById('memoryGameContent');
+            
+            // Buttons
+            const startRulesBtn = document.getElementById('startRulesBtn');
+            const memoryToRulesBtn = document.getElementById('memoryToRulesBtn');
+            const selectMemoryLevel1Btn = document.getElementById('selectMemoryLevel1Btn');
+            const selectMemoryLevel2Btn = document.getElementById('selectMemoryLevel2Btn');
+            const selectMemoryLevel3Btn = document.getElementById('selectMemoryLevel3Btn');
+            const selectMemoryLevel4Btn = document.getElementById('selectMemoryLevel4Btn');
+            const selectMemoryLevel5Btn = document.getElementById('selectMemoryLevel5Btn');
+            const memoryToLevelSelectBtn = document.getElementById('memoryToLevelSelectBtn');
+            const magnifyingGlassBtn = document.getElementById('magnifyingGlassBtn');
+
+            // Memory Game Elements
+            const memoryGameBoard = document.getElementById('memoryGameBoard');
+            const memoryMessageEl = document.getElementById('memoryMessage');
+            const memoryScoreEl = document.getElementById('memoryScore');
+            const memoryTimerEl = document.getElementById('memoryTimer');
+
+            // Game Variables
+            const cardValues = {
+                'level1': ['🍌', '🍏', '🍊', '🍇', '🥝', '🍅', '🥕', '🥬', '🍌', '🍏', '🍊', '🍇', '🥝', '🍅', '🥕', '🥬'],
+                'level2': ['😙', '😚', '🫠', '🙂', '😗', '😘', '😑', '😐', '😙', '😚', '🫠', '🙂', '😗', '😘', '😑', '😐']
+            };
+            let currentMemoryLevel = '';
+            let memorySelectedCards = [];
+            let memoryMatchedCards = [];
+            let memoryConsecutiveMatches = 0;
+            let memoryScore = 0;
+            let memoryGameLocked = false;
+            let memoryTimer = 150;
+            let memoryCountdownInterval = null;
+            let flipTime = 1000;
+            
+            // Level 3 specific variables
+            let nextNumber = 1;
+            let numbersFound = 0;
+            let incorrectGuessesLevel3 = 0;
+
+            // Level 4 specific variables
+            let redCardsFound = 0;
+
+            // Level 5 specific variables
+            let requiredColor = '';
+            let colorsFound = { 'red': 0, 'yellow': 0, 'orange': 0 };
+
+            // --- Game State Management ---
+            function showPage(pageId) {
+                rulesPage.classList.add('hidden');
+                memoryGameSection.classList.add('hidden');
+                
+                if (pageId === 'rulesPage') {
+                    rulesPage.classList.remove('hidden');
+                } else if (pageId === 'memoryLevelSelection') {
+                    memoryGameSection.classList.remove('hidden');
+                    memoryLevelSelection.classList.remove('hidden');
+                    memoryGameContent.classList.add('hidden');
+                } else if (pageId === 'memoryGameContent') {
+                    memoryGameSection.classList.remove('hidden');
+                    memoryLevelSelection.classList.add('hidden');
+                    memoryGameContent.classList.remove('hidden');
+                }
+            }
+
+            function startGame(level) {
+                currentMemoryLevel = level;
+                showPage('memoryGameContent');
+                
+                memoryScore = 0;
+                memoryScoreEl.textContent = memoryScore;
+                memoryTimer = 150;
+                memoryTimerEl.textContent = memoryTimer;
+                clearInterval(memoryCountdownInterval);
+                memoryCountdownInterval = setInterval(updateMemoryTimer, 1000);
+                
+                magnifyingGlassBtn.classList.remove('disabled-magnifier');
+                magnifyingGlassBtn.disabled = false;
+                magnifyingGlassBtn.classList.add('hidden');
+
+                if (level === 'level1' || level === 'level2') {
+                    flipTime = (level === 'level2') ? 1300 : 1000;
+                    magnifyingGlassBtn.classList.remove('hidden');
+                    createMemoryGameBoard(level);
+                } else if (level === 'level3') {
+                    incorrectGuessesLevel3 = 0; // Initialize new counter
+                    createLevel3Board();
+                    showAndHideCards();
+                } else if (level === 'level4') {
+                    createLevel4Board();
+                    showAndHideCards();
+                } else if (level === 'level5') {
+                    createLevel5Board();
+                    showAndHideCards();
+                }
+            }
+
+            function updateMemoryTimer() {
+                memoryTimer--;
+                memoryTimerEl.textContent = memoryTimer;
+                if (memoryTimer <= 0) {
+                    clearInterval(memoryCountdownInterval);
+                    memoryMessageEl.textContent = "Time's up! Game Over.";
+                    memoryGameLocked = true;
+                }
+            }
+            
+            function showAndHideCards() {
+                memoryGameLocked = true;
+                document.querySelectorAll('#memoryGameBoard .card').forEach(card => {
+                    card.classList.add('flipped');
+                });
+                
+                setTimeout(() => {
+                    document.querySelectorAll('#memoryGameBoard .card').forEach(card => {
+                        card.classList.remove('flipped');
+                    });
+                    memoryGameLocked = false;
+                }, 2000);
+            }
+
+            // --- Utility Functions ---
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            function updateMemoryScore(points) {
+                memoryScore += points;
+                memoryScoreEl.textContent = memoryScore;
+            }
+
+            // --- Level 1 & 2: Classic Memory Game ---
+            function createMemoryGameBoard(level) {
+                memoryGameBoard.innerHTML = '';
+                memoryGameLocked = false;
+                memorySelectedCards = [];
+                memoryMatchedCards = [];
+                memoryConsecutiveMatches = 0;
+                
+                const shuffledCards = shuffle([...cardValues[level]]);
+                memoryGameBoard.classList.remove('sequential-numbers');
+
+                shuffledCards.forEach((value, index) => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.value = value;
+                    card.dataset.index = index;
+
+                    const cardFront = document.createElement('div');
+                    cardFront.classList.add('card-face', 'card-front');
+                    cardFront.textContent = value;
+
+                    const cardBack = document.createElement('div');
+                    cardBack.classList.add('card-face', 'card-back');
+                    
+                    card.appendChild(cardFront);
+                    card.appendChild(cardBack);
+
+                    card.addEventListener('click', () => flipCard_Memory(card));
+                    memoryGameBoard.appendChild(card);
+                });
+                memoryMessageEl.textContent = "Find the pairs!";
+            }
+
+            function flipCard_Memory(card) {
+                if (memoryGameLocked || memoryMatchedCards.includes(card) || memorySelectedCards.includes(card)) {
+                    return;
+                }
+
+                card.classList.add('flipped');
+                memorySelectedCards.push(card);
+
+                if (memorySelectedCards.length === 2) {
+                    memoryGameLocked = true;
+                    setTimeout(checkMatch_Memory, flipTime);
+                }
+            }
+
+            function checkMatch_Memory() {
+                const [card1, card2] = memorySelectedCards;
+                if (card1.dataset.value === card2.dataset.value) {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    memoryMatchedCards.push(card1, card2);
+                    memoryConsecutiveMatches++;
+                    
+                    let pointsToAdd = 10;
+                    if (memoryConsecutiveMatches >= 3) {
+                        pointsToAdd = 30;
+                    }
+
+                    updateMemoryScore(pointsToAdd);
+                    memoryMessageEl.textContent = `Match found! +${pointsToAdd} points.`;
+                    
+                    if (memoryMatchedCards.length === cardValues[currentMemoryLevel].length) {
+                        memoryMessageEl.textContent = `Congratulations! You beat the Memory Game!`;
+                        clearInterval(memoryCountdownInterval);
+                    }
+                } else {
+                    updateMemoryScore(-5);
+                    memoryConsecutiveMatches = 0;
+                    memoryMessageEl.textContent = "No match. -5 points.";
+                    
+                    setTimeout(() => {
+                        card1.classList.remove('flipped');
+                        card2.classList.remove('flipped');
+                    }, 500);
+                }
+                memorySelectedCards = [];
+                memoryGameLocked = false;
+            }
+
+            function activateMagnifier() {
+                if (magnifyingGlassBtn.disabled) {
+                    return;
+                }
+                
+                magnifyingGlassBtn.disabled = true;
+                magnifyingGlassBtn.classList.add('disabled-magnifier');
+                memoryMessageEl.textContent = "Magnifying Glass activated!";
+
+                const allCards = document.querySelectorAll('#memoryGameBoard .card');
+                allCards.forEach(card => card.classList.add('flipped'));
+
+                setTimeout(() => {
+                    allCards.forEach(card => {
+                        if (!memoryMatchedCards.includes(card)) {
+                            card.classList.remove('flipped');
+                        }
+                    });
+                    memoryMessageEl.textContent = "Find the pairs!";
+                }, flipTime);
+
+                setTimeout(() => {
+                    magnifyingGlassBtn.disabled = false;
+                    magnifyingGlassBtn.classList.remove('disabled-magnifier');
+                }, 10000); // 10-second cooldown
+            }
+            
+            // --- Level 3: Number Sequence ---
+            function createLevel3Board() {
+                memoryGameBoard.innerHTML = '';
+                memoryGameLocked = false;
+                nextNumber = 1;
+                numbersFound = 0;
+                incorrectGuessesLevel3 = 0; // Reset counter for new game
+                memoryMessageEl.textContent = `Click the numbers in order. Start with 1.`;
+
+                const numbers = shuffle(Array.from({length: 16}, (_, i) => i + 1));
+                numbers.forEach(number => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.value = number;
+                    
+                    const cardFront = document.createElement('div');
+                    cardFront.classList.add('card-face', 'card-front', 'white-face');
+                    cardFront.textContent = number;
+
+                    const cardBack = document.createElement('div');
+                    cardBack.classList.add('card-face', 'card-back');
+
+                    card.appendChild(cardFront);
+                    card.appendChild(cardBack);
+
+                    card.addEventListener('click', () => flipCard_Numbers(card));
+                    memoryGameBoard.appendChild(card);
+                });
+            }
+
+            function flipCard_Numbers(card) {
+                if (memoryGameLocked || card.classList.contains('flipped')) return;
+
+                const numberClicked = parseInt(card.dataset.value);
+                
+                if (numberClicked === nextNumber) {
+                    card.classList.add('flipped', 'matched');
+                    numbersFound++;
+                    updateMemoryScore(10);
+                    memoryMessageEl.textContent = `Correct! Find ${nextNumber + 1}.`;
+                    nextNumber++;
+                    incorrectGuessesLevel3 = 0; // Reset consecutive errors
+                    if (numbersFound === 16) {
+                        memoryMessageEl.textContent = "Congratulations! You found all the numbers!";
+                        clearInterval(memoryCountdownInterval);
+                    }
+                } else {
+                    card.classList.add('flipped');
+                    updateMemoryScore(-10);
+                    incorrectGuessesLevel3++; // Increment consecutive errors
+
+                    setTimeout(() => {
+                        card.classList.remove('flipped');
+                    }, 500);
+
+                    if (incorrectGuessesLevel3 >= 3) {
+                        memoryMessageEl.textContent = `3 consecutive errors! All numbers reset. Start over from 1.`;
+                        nextNumber = 1;
+                        numbersFound = 0;
+                        incorrectGuessesLevel3 = 0;
+                        document.querySelectorAll('#memoryGameBoard .card').forEach(c => c.classList.remove('flipped', 'matched'));
+                    } else {
+                        memoryMessageEl.textContent = `Wrong number! -10 points. Consecutive errors: ${incorrectGuessesLevel3}`;
+                    }
+                }
+            }
+
+            // --- Level 4: Red Target ---
+            function createLevel4Board() {
+                memoryGameBoard.innerHTML = '';
+                memoryGameLocked = false;
+                redCardsFound = 0;
+                memoryMessageEl.textContent = `Click only the red cards!`;
+
+                const colors = [];
+                for (let i = 0; i < 10; i++) colors.push('red'); // 60%
+                for (let i = 0; i < 6; i++) colors.push('gray'); // 40%
+                
+                const shuffledColors = shuffle(colors);
+
+                shuffledColors.forEach(color => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.value = color;
+
+                    const cardFront = document.createElement('div');
+                    cardFront.classList.add('card-face', 'card-front', `${color}-face`);
+                    
+                    const cardBack = document.createElement('div');
+                    cardBack.classList.add('card-face', 'card-back');
+
+                    card.appendChild(cardFront);
+                    card.appendChild(cardBack);
+                    
+                    card.addEventListener('click', () => flipCard_Colors(card, 'level4'));
+                    memoryGameBoard.appendChild(card);
+                });
+            }
+
+            function flipCard_Colors(card, level) {
+                if (memoryGameLocked || card.classList.contains('flipped')) return;
+
+                const colorClicked = card.dataset.value;
+
+                if (level === 'level4') {
+                    if (colorClicked === 'red') {
+                        card.classList.add('flipped', 'matched');
+                        updateMemoryScore(5);
+                        redCardsFound++;
+                        memoryMessageEl.textContent = `Good job! Found a red card.`;
+                        if (redCardsFound === 10) {
+                            memoryMessageEl.textContent = "Congratulations! You found all the red cards!";
+                            clearInterval(memoryCountdownInterval);
+                        }
+                    } else {
+                        card.classList.add('flipped', 'matched');
+                        updateMemoryScore(-10);
+                        memoryMessageEl.textContent = `Oops! That's not red. -10 points.`;
+                    }
+                } else if (level === 'level5') {
+                     if (colorClicked === requiredColor) {
+                        card.classList.add('flipped', 'matched');
+                        updateMemoryScore(5);
+                        colorsFound[requiredColor]++;
+                        memoryMessageEl.textContent = `Correct! Find more ${requiredColor} cards.`;
+                        
+                        if (requiredColor === 'red' && colorsFound['red'] === 3) {
+                            requiredColor = 'yellow';
+                            memoryMessageEl.textContent = `Now find all the yellow cards!`;
+                        } else if (requiredColor === 'yellow' && colorsFound['yellow'] === 5) {
+                            requiredColor = 'orange';
+                            memoryMessageEl.textContent = `Finish by finding all the orange cards!`;
+                        } else if (requiredColor === 'orange' && colorsFound['orange'] === 8) {
+                            memoryMessageEl.textContent = `Congratulations! You completed the color chain!`;
+                            clearInterval(memoryCountdownInterval);
+                        }
+                    } else {
+                        card.classList.add('flipped', 'matched');
+                        updateMemoryScore(-10);
+                        memoryMessageEl.textContent = `Wrong color! You need to find ${requiredColor} first. -10 points.`;
+                    }
+                }
+            }
+
+            // --- Level 5: Sequential Color Selection ---
+            function createLevel5Board() {
+                memoryGameBoard.innerHTML = '';
+                memoryGameLocked = false;
+                requiredColor = 'red';
+                colorsFound = { 'red': 0, 'yellow': 0, 'orange': 0 };
+                memoryMessageEl.textContent = `Find the red cards first!`;
+
+                const colors = [];
+                for (let i = 0; i < 3; i++) colors.push('red'); // 20%
+                for (let i = 0; i < 5; i++) colors.push('yellow'); // 30%
+                for (let i = 0; i < 8; i++) colors.push('orange'); // 50%
+                
+                const shuffledColors = shuffle(colors);
+
+                shuffledColors.forEach(color => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.value = color;
+
+                    const cardFront = document.createElement('div');
+                    cardFront.classList.add('card-face', 'card-front', `${color}-face`);
+                    
+                    const cardBack = document.createElement('div');
+                    cardBack.classList.add('card-face', 'card-back');
+
+                    card.appendChild(cardFront);
+                    card.appendChild(cardBack);
+                    
+                    card.addEventListener('click', () => flipCard_Colors(card, 'level5'));
+                    memoryGameBoard.appendChild(card);
+                });
+            }
+
+            // Event Listeners
+            startRulesBtn.addEventListener('click', () => showPage('memoryLevelSelection'));
+            memoryToRulesBtn.addEventListener('click', () => showPage('rulesPage'));
+            selectMemoryLevel1Btn.addEventListener('click', () => startGame('level1'));
+            selectMemoryLevel2Btn.addEventListener('click', () => startGame('level2'));
+            selectMemoryLevel3Btn.addEventListener('click', () => startGame('level3'));
+            selectMemoryLevel4Btn.addEventListener('click', () => startGame('level4'));
+            selectMemoryLevel5Btn.addEventListener('click', () => startGame('level5'));
+            memoryToLevelSelectBtn.addEventListener('click', () => {
+                clearInterval(memoryCountdownInterval);
+                showPage('memoryLevelSelection');
+            });
+            magnifyingGlassBtn.addEventListener('click', activateMagnifier);
+            
+            // Initial page load
+            showPage('rulesPage');
+        });
+    </script>
+</body>
+</html>
